@@ -251,7 +251,7 @@ local function open()
 		beard.AutoButtonColor = true
 		beard.frame.text.TextColor3 = allowed and Color3.new(1,1,1) or Color3.fromRGB(100,100,100)
 	end
-	input:GetPropertyChangedSignal("Text"):Connect(function() if not input:GetAttribute("updating") then sname = "" compute() end end)
+	input:GetPropertyChangedSignal("Text"):Connect(function() if not input:GetAttribute("updating") then compute() end end)
 	local t1,t2
 	local t3 = false
 	viewport.thing.MouseButton1Click:Connect(function()
@@ -485,8 +485,8 @@ plugin.Deactivation:Connect(close)
 
 selection.SelectionChanged:Connect(function()
 	selected = selection:Get()[1]
-	if selected and (selected.Parent.Name == "Bots" or selected.Parent.Name == "BotTemplates" or selected.Parent.Name == "BotStorage") and selected:GetAttribute("Seed") and tonumber(selected:GetAttribute("Seed")) then
-		if conn then conn:Disconnect() conn = nil end
+	if conn then conn:Disconnect() conn = nil end
+	if selected and (selected:FindFirstAncestor("Bots") or selected:FindFirstAncestor("BotTemplates") or selected:FindFirstAncestor("BotStorage")) and selected:GetAttribute("Seed") and tonumber(selected:GetAttribute("Seed")) then
 		pcall(function() sname = selected.Name compute(tonumber(selected:GetAttribute("Seed"))) end)
 		conn = selected:GetAttributeChangedSignal("Seed"):Connect(function()
 			sname = selected.Name compute(tonumber(selected:GetAttribute("Seed")))
