@@ -15,19 +15,19 @@ local selected
 local sname = ""
 local sframe
 
-hairstyles = {
+local hairstyles = {
 	male = {"Charmer","Cool","Dev","Dreamy","Popstar","Neat","Spiky","Shaggy","MessyWavy","Fluffed"},
 	female = {"Animazing","Anime","Bob","Drama","Cropped","Wild","Classic","Long","Ponytail","Wolfish","Wavy","Short"},
 	beards = {"Neat","Thin","Trimmed"}
 }
-skincolors = {
+local skincolors = {
 	black = {{124,92,70},{100,75,62},{86,66,54},{110,81,62},{80,59,45}},
-	beige = {{170,133,106},{175,148,131}},
-	white = {{234,184,146},{180,144,108},{255,204,153}},
-	tan = {{170,133,106},{158,117,89},{180,144,108}},
-	medium = {{124,92,70},{139,117,104},{158,117,89}}
+	beige = {{175,148,131},{170,133,106}},
+	white = {{255,204,153},{234,184,146},{180,144,108}},
+	tan = {{158,117,89},{180,144,108},{170,133,106}},
+	medium = {{158,117,89},{124,92,70},{139,117,104}}
 }
-haircolors = {
+local haircolors = {
 	black = {{27,42,53},{52,52,52},{33,33,33}},
 	beige = {{27,42,53},{86,66,54},{57,43,35},{30,22,18}},
 	white = {{27,42,53},{86,66,54},{99,95,98},{199,172,120},{90,76,66},{135,79,44},{124,92,70}},
