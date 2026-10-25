@@ -22,3 +22,5 @@ selecting a bot in explorer under Bots/BotTemplates/BotStorage will display thei
 <img width="1150" height="360" alt="image" src="https://github.com/user-attachments/assets/f0b102f6-8685-4939-884e-4e5843d75b02" />
 
 i think that should be all, again if you are confused i think the brainstorm clears up most doubts if you are patient enough to follow my rants
+
+(images may be outdated, concept and """guide""" remain the same)
