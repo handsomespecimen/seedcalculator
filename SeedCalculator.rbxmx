@@ -1,10 +1,800 @@
 <roblox xmlns:xmime="http://www.w3.org/2005/05/xmlmime" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://www.roblox.com/roblox.xsd" version="4">
 	<External>null</External>
 	<External>nil</External>
-	<Item class="ModuleScript" referent="RBX1846A01CC9654FB491CF4DAA1499170A">
+	<Item class="Folder" referent="RBXD9CCED34455041F0B390F9F07E8260E0">
 		<Properties>
-			<Content name="LinkedSource"><null></null></Content>
-			<ProtectedString name="Source"><![CDATA[--[=[
+			<Color3 name="IconTint">
+				<R>0</R>
+				<G>0</G>
+				<B>0</B>
+			</Color3>
+			<BinaryString name="AttributesSerialize"></BinaryString>
+			<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+			<bool name="DefinesCapabilities">false</bool>
+			<string name="Name">SeedCalculator</string>
+			<BinaryString name="SerializedOverrides"></BinaryString>
+			<int64 name="SourceAssetId">-1</int64>
+			<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+		</Properties>
+		<Item class="Script" referent="RBXFC5419E267BF49BF92F523D08434E233">
+			<Properties>
+				<ProtectedString name="Source"><![CDATA[local SEL = game:GetService("Selection")
+local PREVIEW = require(script.Parent.Preview)
+local SELECTOR = require(script.Parent.Selector)
+local PANEL = require(script.Parent.Panel)
+local NOTIFS = require(script.Parent.Notifications)
+
+local NAME = "Seed Calculator"
+local TOOLBAR = plugin:CreateToolbar(NAME)
+local BUTTON = TOOLBAR:CreateButton(NAME,NAME,"rbxassetid://8803807177",NAME)
+
+local gui
+local selected
+local connection
+local savedSeed = 416
+local selectedName = ""
+
+local function close()
+	if gui then
+		PREVIEW.close()
+		gui = nil
+		NOTIFS.setGUI(nil)
+	end
+end
+
+local function open()
+	gui = PREVIEW.create()
+	NOTIFS.setGUI(gui)
+	
+	local viewport = gui.container.viewport
+	local selector = viewport.selector
+	local input = gui.container.input
+	
+	local seed = tonumber(savedSeed) or 416
+	input.Text = tostring(seed)
+	
+	PREVIEW.setSelected(selected,selectedName)
+	SELECTOR.connect(gui)
+	PANEL.connect(
+		viewport,
+		selector,
+		SELECTOR.closeDropdown()
+	)
+	
+	input:GetPropertyChangedSignal("Text"):Connect(function()
+		if not input:GetAttribute("updating") then
+			PREVIEW.update()
+		end
+	end)
+end
+
+BUTTON.Click:Connect(function()
+	if gui then
+		savedSeed = gui.container.input.Text
+		close()
+	else
+		open()
+		PREVIEW.update()
+	end
+end)
+
+plugin.Unloading:Connect(close)
+plugin.Deactivation:Connect(close)
+
+SEL.SelectionChanged:Connect(function()
+	selected = SEL:Get()[1]
+	
+	if connection then
+		connection:Disconnect()
+		connection = nil
+	end
+	
+	local seed = selected and selected:GetAttribute("Seed")
+	
+	local secondCheck = selected and (selected:FindFirstAncestor("Bots") or selected:FindFirstAncestor("BotTemplates") or selected:FindFirstAncestor("BotStorage"))
+	if selected and secondCheck and seed and tonumber(seed) then
+		selectedName = selected.Name
+		PREVIEW.setSelected(selected,selectedName)
+		PREVIEW.update(tonumber(seed))
+		
+		connection = selected:GetAttributeChangedSignal("Seed"):Connect(function()
+			selectedName = selected.Name
+			PREVIEW.setSelected(selected,selectedName)
+			PREVIEW.update(tonumber(selected:GetAttribute("Seed")))
+		end)
+	else
+		selected = nil
+		selectedName = ""
+		PREVIEW.setSelected(nil,"")
+		PREVIEW.update()
+	end
+end)
+
+--sprix PLEASE tell me this is enough
+--although gotta say having it sorted like this isnt like awful
+--maybe ill do it more in the future (except the camel case i still feel like thats kinda gross idk why)]]></ProtectedString>
+				<bool name="Disabled">false</bool>
+				<Content name="LinkedSource"><null></null></Content>
+				<token name="RunContext">0</token>
+				<string name="ScriptGuid">{db645a3c-6f45-63ed-6f85-c458c602bf12}</string>
+				<BinaryString name="AttributesSerialize"></BinaryString>
+				<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+				<bool name="DefinesCapabilities">false</bool>
+				<string name="Name">Main</string>
+				<BinaryString name="SerializedOverrides"></BinaryString>
+				<int64 name="SourceAssetId">-1</int64>
+				<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+			</Properties>
+		</Item>
+		<Item class="ModuleScript" referent="RBX737CBCB7483A4EA5BBA0DF0992ABF5F1">
+			<Properties>
+				<Content name="LinkedSource"><null></null></Content>
+				<ProtectedString name="Source"><![CDATA[local module = {}
+local SEED_DATA = require(script.Parent.SeedData)
+local TS = game:GetService("TweenService")
+
+local gui
+local currentPopup
+local popupId = 0
+local shownAt = 0
+
+function module.setGUI(nextGUI)
+	gui = nextGUI
+end
+
+local function hide(popupFrame)
+	if not popupFrame or not popupFrame.Parent then
+		return
+	end
+	
+	local move = TS:Create(popupFrame,SEED_DATA.TWEEN_IN,{
+		Position = popupFrame.Position + UDim2.new(0,0,-.2,0)
+	})
+	
+	TS:Create(popupFrame,SEED_DATA.TWEEN_LINEAR,{
+		TextTransparency = 1
+	}):Play()
+	
+	move.Completed:Connect(function()
+		if popupFrame.Parent then
+			popupFrame:Destroy()
+		end
+	end)
+	
+	move:Play()
+end
+
+function module.popup(text)
+	if os.clock() - shownAt < 1 then return end
+	
+	if currentPopup then
+		hide(currentPopup)
+	end
+	
+	shownAt = os.clock()
+	popupId += 1
+	local thisId = popupId
+	local popupFrame = gui.popup:Clone()
+	currentPopup = popupFrame
+	popupFrame.Position += UDim2.new(0,0,.2,0)
+	popupFrame.TextTransparency = 1
+	popupFrame.Text = text
+	popupFrame.Parent = gui
+	
+	TS:Create(popupFrame,SEED_DATA.TWEEN_OUT,{
+		Position = popupFrame.Position + UDim2.new(0,0,-.2,0)
+	}):Play()
+	TS:Create(popupFrame,SEED_DATA.TWEEN_LINEAR,{
+		TextTransparency = 0
+	}):Play()
+	
+	task.delay(5,function()
+		if popupId ~= thisId or currentPopup ~= popupFrame then
+			return
+		end
+		
+		currentPopup = nil
+		hide(popupFrame)
+	end)
+	
+	task.delay(7,function()
+		popupFrame:Destroy()
+	end)
+end
+
+return module]]></ProtectedString>
+				<string name="ScriptGuid">{6c6bbc75-128c-d874-c114-a925b9432bb7}</string>
+				<BinaryString name="AttributesSerialize"></BinaryString>
+				<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+				<bool name="DefinesCapabilities">false</bool>
+				<string name="Name">Notifications</string>
+				<BinaryString name="SerializedOverrides"></BinaryString>
+				<int64 name="SourceAssetId">-1</int64>
+				<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+			</Properties>
+		</Item>
+		<Item class="ModuleScript" referent="RBX8E3BA2B134C0442D9C0DA53694B0FC36">
+			<Properties>
+				<Content name="LinkedSource"><null></null></Content>
+				<ProtectedString name="Source"><![CDATA[local module = {}
+local SEED_DATA = require(script.Parent.SeedData)
+local TS = game:GetService("TweenService")
+
+local dropdown
+
+function module.connect(viewport,selector,closeDropdown)
+	local t1,t2
+	local expanded = false
+	
+	viewport.thing.MouseButton1Click:Connect(function()
+		expanded = not expanded
+		if t1 then t1:Cancel() end
+		if t2 then t2:Cancel() end
+		
+		if expanded then
+			t1 = TS:Create(viewport.Parent,SEED_DATA.TWEEN_OUT,{
+				Position = UDim2.new(.5,0,.5,0)
+			})
+			t2 = TS:Create(selector,SEED_DATA.TWEEN_OUT,{
+				Size = UDim2.new(0,200,0,270)
+			})
+			t1:Play()
+			t2:Play()
+			
+			task.delay(.2,function()
+				if expanded then
+					selector.ClipsDescendants = false
+				end
+			end)
+		else
+			selector.ClipsDescendants = true
+			t1 = TS:Create(viewport.Parent,SEED_DATA.TWEEN_OUT,{
+				Position = UDim2.new(.5,110,.5,0)
+			})
+			t2 = TS:Create(selector,SEED_DATA.TWEEN_OUT,{
+				Size = UDim2.new(0,0,0,270)
+			})
+			t1:Play()
+			t2:Play()
+		end
+		
+		if closeDropdown then closeDropdown() end
+	end)
+end
+
+return module]]></ProtectedString>
+				<string name="ScriptGuid">{86763277-bfa3-f4f0-a564-c22dd1990c71}</string>
+				<BinaryString name="AttributesSerialize"></BinaryString>
+				<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+				<bool name="DefinesCapabilities">false</bool>
+				<string name="Name">Panel</string>
+				<BinaryString name="SerializedOverrides"></BinaryString>
+				<int64 name="SourceAssetId">-1</int64>
+				<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+			</Properties>
+		</Item>
+		<Item class="ModuleScript" referent="RBXD0284F076BBD4B5E8DD5CDADDF33B23C">
+			<Properties>
+				<Content name="LinkedSource"><null></null></Content>
+				<ProtectedString name="Source"><![CDATA[local module = {}
+local SEED_DATA = require(script.Parent.SeedData)
+local SEED_LOGIC = require(script.Parent.SeedLogic)
+local HIST = game:GetService("ChangeHistoryService")
+local UI_TEMPLATE = require(script.Parent.UI)
+
+local gui
+local selected
+local sname = ""
+
+function module.setSelected(nextSelected,nextName)
+	selected = nextSelected
+	sname = nextName or ""
+end
+
+function module.getGUI()
+	return gui
+end
+
+function module.create()
+	gui = UI_TEMPLATE:Clone()
+	gui.Parent = game:GetService("CoreGui")
+	
+	local viewport = gui.container.viewport
+	for _,item in ipairs(gui:GetDescendants()) do
+		if item:IsA("ViewportFrame") then
+			item.CurrentCamera = viewport.Camera
+		end
+	end
+	
+	return gui
+end
+
+function module.close()
+	if gui then
+		gui:Destroy()
+		gui = nil
+	end
+end
+
+local function updateAppearance(viewport,details)
+	local hairstyle = details.hairstyle
+	local beardstyle = details.beardstyle
+	local skincolor = details.skincolor
+	local haircolor = details.haircolor
+	
+	for _,item in ipairs(viewport.hair:GetChildren()) do
+		item.Transparency = (item.Name == hairstyle and 0) or 1
+	end
+	for _,item in ipairs(viewport.beard:GetChildren()) do
+		item.Transparency = (item.Name == beardstyle and 0) or 1
+	end
+	
+	viewport.Head.Color = SEED_LOGIC.toColor(skincolor)
+	for _,item in ipairs(viewport:GetDescendants()) do
+		if item:IsA("MeshPart") and item.Parent:IsA("Folder") then
+			item.Color = SEED_LOGIC.toColor(haircolor)
+		end
+	end
+end
+
+local function updateDetails(desc,details,seed,viewport)
+	local hairstyle = details.hairstyle
+	local beardstyle = details.beardstyle
+	local haircolor = details.haircolor
+	local skincolor = details.skincolor
+	desc.seed.frame.text.Text = seed
+	
+	local hairframe = desc.hairstyle.frame
+	local beardframe = desc.beardstyle.frame
+	hairframe.vf:ClearAllChildren()
+	beardframe.vf:ClearAllChildren()
+	
+	local hairclone = viewport.hair[hairstyle]:Clone()
+	local beardclone = viewport.beard[beardstyle]:Clone()
+	hairclone.Parent = hairframe.vf
+	beardclone.Parent = beardframe.vf
+	hairframe.text.Text = hairstyle
+	beardframe.text.Text = beardstyle
+	
+	desc.haircolor.frame.cf.color.BackgroundColor3 = SEED_LOGIC.toColor(haircolor)
+	desc.haircolor.frame.text.Text = SEED_LOGIC.toText(haircolor)
+	desc.skincolor.frame.cf.color.BackgroundColor3 = SEED_LOGIC.toColor(skincolor)
+	desc.skincolor.frame.text.Text = SEED_LOGIC.toText(skincolor)
+	
+	hairclone.Color = SEED_DATA.WHITE
+	beardclone.Color = SEED_DATA.WHITE
+end
+
+function module.update(newSeed)
+	if not gui then return end
+	local container = gui.container
+	local input = container.input
+	local viewport = container.viewport
+	
+	if newSeed and tonumber(newSeed) then
+		input:SetAttribute("updating",true)
+		input.Text = tostring(tonumber(newSeed))
+		input:SetAttribute("updating",false)
+	end
+	
+	viewport.name.Text = sname
+	local seed = tonumber(input.Text)
+	if not seed then return end
+	
+	local details = SEED_LOGIC.getDetails(seed)
+	if not details then return end
+	updateAppearance(viewport,details)
+	updateDetails(viewport.desc,details,seed,viewport)
+	
+	if selected then
+		local rec = HIST:TryBeginRecording("Change Bot Seed")
+		if not rec then return end
+		selected:SetAttribute("Seed",seed)
+		HIST:FinishRecording(rec,Enum.FinishRecordingOperation.Commit)
+	end
+end
+
+return module]]></ProtectedString>
+				<string name="ScriptGuid">{a837dfe7-5438-a263-6f25-49e39fcdc1fb}</string>
+				<BinaryString name="AttributesSerialize"></BinaryString>
+				<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+				<bool name="DefinesCapabilities">false</bool>
+				<string name="Name">Preview</string>
+				<BinaryString name="SerializedOverrides"></BinaryString>
+				<int64 name="SourceAssetId">-1</int64>
+				<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+			</Properties>
+		</Item>
+		<Item class="ModuleScript" referent="RBX56E82672075E4750AC380BC9E0CBAFB4">
+			<Properties>
+				<Content name="LinkedSource"><null></null></Content>
+				<ProtectedString name="Source"><![CDATA[local module = {}
+
+module.HAIRSTYLES = {
+	male = {"Charmer","Cool","Dev","Dreamy","Popstar","Neat","Spiky","Shaggy","MessyWavy","Fluffed"},
+	female = {"Animazing","Anime","Bob","Drama","Cropped","Wild","Classic","Long","Ponytail","Wolfish","Wavy","Short"},
+	beards = {"Neat","Thin","Trimmed"}
+}
+
+module.SKIN_COLORS = {
+	black = {{124,92,70},{100,75,62},{86,66,54},{110,81,62},{80,59,45}},
+	beige = {{175,148,131},{170,133,106}},
+	white = {{255,204,153},{234,184,146},{180,144,108}},
+	tan = {{158,117,89},{124,92,70},{139,117,104}},
+	medium = {{158,117,89},{180,144,108},{170,133,106}},
+}
+
+module.HAIR_COLORS = {
+	black = {{27,42,53},{52,52,52},{33,33,33}},
+	beige = {{27,42,53},{86,66,54},{57,43,35},{30,22,18}},
+	white = {{27,42,53},{86,66,54},{99,95,98},{199,172,120},{90,76,66},{135,79,44},{124,92,70}},
+	tan = {{27,42,53},{86,66,54},{57,43,35},{30,22,18}},
+	medium = {{27,42,53},{52,52,52},{33,33,33}}
+}
+
+module.GROUPS = {"black","beige","white","tan","medium"}
+module.SELECTOR_KEYS = {"hairstyle","beardstyle","haircolor","skincolor"}
+module.WHITE = Color3.fromRGB(255,255,255)
+module.BLACK = Color3.fromRGB(0,0,0)
+module.GRAY = Color3.fromRGB(100,100,100)
+
+module.TWEEN_IN = TweenInfo.new(.2,Enum.EasingStyle.Circular,Enum.EasingDirection.In)
+module.TWEEN_OUT = TweenInfo.new(.2,Enum.EasingStyle.Circular,Enum.EasingDirection.Out)
+module.TWEEN_LINEAR = TweenInfo.new(.2,Enum.EasingStyle.Linear)
+
+return module]]></ProtectedString>
+				<string name="ScriptGuid">{8dcb0418-42f2-b6d9-daf4-ee1b179d7732}</string>
+				<BinaryString name="AttributesSerialize"></BinaryString>
+				<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+				<bool name="DefinesCapabilities">false</bool>
+				<string name="Name">SeedData</string>
+				<BinaryString name="SerializedOverrides"></BinaryString>
+				<int64 name="SourceAssetId">-1</int64>
+				<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+			</Properties>
+		</Item>
+		<Item class="ModuleScript" referent="RBX42D6F6B7C6704DD59BC22778B788C06F">
+			<Properties>
+				<Content name="LinkedSource"><null></null></Content>
+				<ProtectedString name="Source"><![CDATA[local module = {}
+local SEED_DATA = require(script.Parent.SeedData)
+
+function module.getSeedOption(list,seed,repeater)
+	return list[math.floor(seed/repeater)%#list+1]
+end
+function module.toColor(rgb)
+	return Color3.fromRGB(rgb[1],rgb[2],rgb[3])
+end
+function module.toText(rgb)
+	return table.concat(rgb,",")
+end
+
+function module.makeColor(rgb,ethnicity,dropdown)
+	local label = module.toText(rgb)
+	local value = {label = label,rgb = rgb,ethnicity = ethnicity}
+	
+	if dropdown then
+		value.dropdownlabel = label.." ("..ethnicity..")"
+	end
+	
+	return value
+end
+
+function module.getDetails(seed,selector)
+	local details = {}
+	
+	if seed%100 < 15 then
+		details.ethnicity = "black"
+	elseif seed%100 < 30 then
+		details.ethnicity = "beige"
+	elseif seed%100 < 70 then
+		details.ethnicity = "white"
+	elseif seed%100 < 85 then
+		details.ethnicity = "tan"
+	else
+		details.ethnicity = "medium"
+	end
+	
+	local gender = (seed%2 == 0 and "male") or "female"
+	details.hairstyle = module.getSeedOption(SEED_DATA.HAIRSTYLES[gender],seed,7)
+	details.beardstyle = (seed%10 == 0 and module.getSeedOption(SEED_DATA.HAIRSTYLES.beards,seed,5)) or "none"
+	details.skincolor = module.getSeedOption(SEED_DATA.SKIN_COLORS[details.ethnicity],seed,3)
+	details.haircolor = module.getSeedOption(SEED_DATA.HAIR_COLORS[details.ethnicity],seed,13)
+	
+	if selector then
+		details.skincolor = module.makeColor(details.skincolor,details.ethnicity)
+		details.haircolor = module.makeColor(details.haircolor,details.ethnicity)
+	end
+	
+	if not details.hairstyle or not details.beardstyle or not details.skincolor or not details.haircolor then
+		return false
+	end
+	return details
+end
+
+function module.makeOptions(key,current)
+	local options = {"*"}
+	
+	if key == "hairstyle" then
+		for _,gender in ipairs({"male","female"}) do
+			for _,style in ipairs(SEED_DATA.HAIRSTYLES[gender]) do
+				table.insert(options,style)
+			end
+		end
+	elseif key == "beardstyle" then
+		if current.hairstyle == "*" or table.find(SEED_DATA.HAIRSTYLES.male,current.hairstyle) then
+			table.insert(options,"none")
+			for _,style in ipairs(SEED_DATA.HAIRSTYLES.beards) do
+				table.insert(options,style)
+			end
+		end
+	else
+		options = {{label = "*",dropdownlabel = "*",wildcard = true}}
+		local pool = (key == "haircolor" and SEED_DATA.HAIR_COLORS) or SEED_DATA.SKIN_COLORS
+
+		for _,group in ipairs(SEED_DATA.GROUPS) do
+			for _,color in ipairs(pool[group]) do
+				table.insert(options,module.makeColor(color,group,true))
+			end
+		end
+	end
+	
+	return options
+end
+
+function module.matchColor(wanted,ethnicity,rgb)
+	if wanted.wildcard then
+		return true
+	end
+	
+	if ethnicity ~= wanted.ethnicity then
+		return false
+	end
+	
+	return rgb[1] == wanted.rgb[1] and rgb[2] == wanted.rgb[2] and rgb[3] == wanted.rgb[3]
+end
+
+function module.findSeed(current)
+	for seed = 0,81899 do -- 81900 as lcm, beyond this they just repeat properties
+		local details = module.getDetails(seed)
+		local matches = true
+		
+		if current.hairstyle ~= "*" and current.hairstyle ~= details.hairstyle then
+			matches = false
+		end
+		if current.beardstyle ~= "*" and current.beardstyle ~= details.beardstyle then
+			matches = false
+		end
+		if not module.matchColor(current.skincolor,details.ethnicity,details.skincolor) then
+			matches = false
+		end
+		if not module.matchColor(current.haircolor,details.ethnicity,details.haircolor) then
+			matches = false
+		end
+		
+		if matches then
+			return seed
+		end
+	end
+	
+	return nil
+end
+
+return module]]></ProtectedString>
+				<string name="ScriptGuid">{fb7977c3-7fb8-2421-9fce-7ec4e23ea8d9}</string>
+				<BinaryString name="AttributesSerialize"></BinaryString>
+				<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+				<bool name="DefinesCapabilities">false</bool>
+				<string name="Name">SeedLogic</string>
+				<BinaryString name="SerializedOverrides"></BinaryString>
+				<int64 name="SourceAssetId">-1</int64>
+				<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+			</Properties>
+		</Item>
+		<Item class="ModuleScript" referent="RBX1D4D8E3EC5294017A26C0C5BF49ED73D">
+			<Properties>
+				<Content name="LinkedSource"><null></null></Content>
+				<ProtectedString name="Source"><![CDATA[local module = {}
+local SEED_DATA = require(script.Parent.SeedData)
+local SEED_LOGIC = require(script.Parent.SeedLogic)
+local NOTIFS = require(script.Parent.Notifications)
+local dropdown
+
+function module.updateFrame(frame,key,value,viewport,displaytext)
+	if displaytext then
+		frame.text.Text = displaytext
+	elseif type(value) == "table" then
+		frame.text.Text = value.label
+	else
+		frame.text.Text = value
+	end
+	
+	if key == "hairstyle" or key == "beardstyle" then
+		frame.vf:ClearAllChildren()
+		local folder = (key == "hairstyle" and viewport.hair) or viewport.beard
+		local source = folder:FindFirstChild(value)
+		if source then
+			local clone = source:Clone()
+			clone.Transparency = 0
+			clone.Color = SEED_DATA.WHITE
+			clone.Parent = frame.vf
+		end
+		return
+	end
+	
+	frame.cf.color.BackgroundColor3 = SEED_LOGIC.toColor(value.rgb or {0,0,0})
+end
+
+function module.updateBeardCheck(selector,hairstyle,beardstyle)
+	local beard = selector.beardstyle
+	local allowed = hairstyle == "*" or table.find(SEED_DATA.HAIRSTYLES.male,hairstyle) ~= nil or beardstyle == "*"
+	
+	beard.Active = true
+	beard.AutoButtonColor = true
+	beard.frame.text.TextColor3 = (allowed and SEED_DATA.WHITE) or SEED_DATA.GRAY
+end
+
+local function createEntry(template,index,key,option,dropdown,viewport,current,selector,input)
+	local entry = template:Clone()
+	entry.Name = "option"..index
+	entry.Visible = true
+	entry.LayoutOrder = index
+	entry.Position = UDim2.new(0,0,0,0)
+	entry.Size = UDim2.new(1,0,0,30)
+	entry.ZIndex = 99
+	
+	local duplicate = entry:FindFirstChild("text")
+	if duplicate then
+		duplicate:Destroy()
+	end
+	
+	entry.Parent = dropdown
+	
+	for _,item in ipairs(entry:GetDescendants()) do
+		if item:IsA("GuiObject") then
+			item.ZIndex = 11
+		end
+	end
+	
+	local displayText = (type(option) == "table" and option.dropdownlabel) or option
+	module.updateFrame(entry.frame,key,option,viewport,displayText)
+	
+	entry.MouseButton1Click:Connect(function()
+		local updates = {key}
+		
+		if key == "haircolor" or key == "skincolor" then
+			current[key] = option
+			local other = (key == "haircolor" and "skincolor") or "haircolor"
+			
+			if not option.wildcard and not current[other].wildcard then
+				local divisor = (other == "haircolor" and 13) or 3
+				local pool = ((other == "haircolor" and SEED_DATA.HAIR_COLORS) or SEED_DATA.SKIN_COLORS)[option.ethnicity]
+				
+				current[other] = SEED_LOGIC.makeColor(
+					SEED_LOGIC.getSeedOption(pool,tonumber(input.Text) or 416,divisor),
+					option.ethnicity,
+					true
+				)
+				
+				table.insert(updates,other)
+			end
+		else
+			current[key] = option
+			
+			if key == "hairstyle" then
+				if option ~= "*" and not table.find(SEED_DATA.HAIRSTYLES.male,option) and current.beardstyle ~= "*" then
+					current.beardstyle = "none"
+				end
+				table.insert(updates,"beardstyle")
+			end
+		end
+		
+		for _,updateKey in ipairs(updates) do
+			module.updateFrame(selector[updateKey].frame,updateKey,current[updateKey],viewport)
+		end
+		
+		if key == "hairstyle" then
+			module.updateBeardCheck(selector,option,current.beardstyle)
+		end
+		
+		if dropdown then
+			dropdown:Destroy()
+			dropdown = nil
+		end
+	end)
+end
+
+function module.connectDropdowns(selector,viewport,current,input)
+	for _,key in ipairs(SEED_DATA.SELECTOR_KEYS) do
+		local target = selector[key]
+		
+		target.MouseButton1Click:Connect(function()
+			if dropdown then
+				local same = dropdown.Parent == target
+				dropdown:Destroy()
+				dropdown = nil
+				if same then return end
+			end
+			
+			local options = SEED_LOGIC.makeOptions(key,current)
+			local template = target:Clone()
+			
+			dropdown = Instance.new("ScrollingFrame")
+			dropdown.Name = "dropdown"
+			dropdown.ScrollingDirection = Enum.ScrollingDirection.Y
+			dropdown.AutomaticCanvasSize = Enum.AutomaticSize.Y
+			dropdown.CanvasSize = UDim2.new(0,0,0,0)
+			dropdown.AnchorPoint = Vector2.new(.5,0)
+			dropdown.Position = UDim2.new(.5,0,1,0)
+			dropdown.Size = UDim2.new(1,0,3,0)
+			dropdown.BackgroundColor3 = Color3.new(0,0,0)
+			dropdown.BackgroundTransparency = .5
+			dropdown.ZIndex = 9
+			dropdown.Parent = target
+			target.ClipsDescendants = false
+			
+			local layout = Instance.new("UIListLayout")
+			layout.SortOrder = Enum.SortOrder.LayoutOrder
+			layout.Padding = UDim.new(0,0)
+			layout.Parent = dropdown
+			
+			for index,option in ipairs(options) do
+				createEntry(template,index,key,option,dropdown,viewport,current,selector,input)
+			end
+			
+			template:Destroy()
+		end)
+	end
+end
+
+function module.connectSearch(selector,current,input)
+	selector.search.sbutton.MouseButton1Click:Connect(function()
+		local found = SEED_LOGIC.findSeed(current)
+		
+		if found then
+			input.Text = tostring(found)
+		else
+			NOTIFS.popup("Combination Impossible")
+		end
+	end)
+end
+
+function module.closeDropdown()
+	if dropdown then
+		dropdown:Destroy()
+		dropdown = nil
+	end
+end
+
+function module.connect(gui)
+	local viewport = gui.container.viewport
+	local selector = viewport.selector
+	local input = gui.container.input
+	local current = SEED_LOGIC.getDetails(tonumber(input.Text) or 416,true)
+	
+	for _,key in ipairs(SEED_DATA.SELECTOR_KEYS) do
+		module.updateFrame(selector[key].frame,key,current[key],viewport)
+	end
+	module.updateBeardCheck(selector,current.hairstyle,current.beardstyle)
+	module.connectSearch(selector,current,input)
+	module.connectDropdowns(selector,viewport,current,input)
+end
+
+return module]]></ProtectedString>
+				<string name="ScriptGuid">{8b364a9d-c901-bbb3-c09c-a112e4bfab41}</string>
+				<BinaryString name="AttributesSerialize"></BinaryString>
+				<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+				<bool name="DefinesCapabilities">false</bool>
+				<string name="Name">Selector</string>
+				<BinaryString name="SerializedOverrides"></BinaryString>
+				<int64 name="SourceAssetId">-1</int64>
+				<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+			</Properties>
+		</Item>
+		<Item class="ModuleScript" referent="RBX1846A01CC9654FB491CF4DAA1499170A">
+			<Properties>
+				<Content name="LinkedSource"><null></null></Content>
+				<ProtectedString name="Source"><![CDATA[--[=[
  d888b  db    db d888888b      .d888b.      db      db    db  .d8b.  
 88' Y8b 88    88   `88'        VP  `8D      88      88    88 d8' `8b 
 88      88    88    88            odD'      88      88    88 88ooo88 
@@ -1408,790 +2198,16 @@ G2L["60"]["Name"] = [[popup]];
 G2L["60"]["Position"] = UDim2.new(0.5, 0, 0.15, 0);
 
 return G2L["1"]]]></ProtectedString>
-			<string name="ScriptGuid">{85dd6fb8-069f-d04b-2344-2483b8b95f0e}</string>
-			<BinaryString name="AttributesSerialize"></BinaryString>
-			<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
-			<bool name="DefinesCapabilities">false</bool>
-			<string name="Name">UI</string>
-			<BinaryString name="SerializedOverrides"></BinaryString>
-			<int64 name="SourceAssetId">-1</int64>
-			<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
-		</Properties>
-	</Item>
-	<Item class="Script" referent="RBXFC5419E267BF49BF92F523D08434E233">
-		<Properties>
-			<ProtectedString name="Source"><![CDATA[local SEL = game:GetService("Selection")
-local PREVIEW = require(script.Parent.Preview)
-local SELECTOR = require(script.Parent.Selector)
-local PANEL = require(script.Parent.Panel)
-local NOTIFS = require(script.Parent.Notifications)
-
-local NAME = "Seed Calculator"
-local TOOLBAR = plugin:CreateToolbar(NAME)
-local BUTTON = TOOLBAR:CreateButton(NAME,NAME,"rbxassetid://8803807177",NAME)
-
-local gui
-local selected
-local connection
-local savedSeed = 416
-local selectedName = ""
-
-local function close()
-	if gui then
-		PREVIEW.close()
-		gui = nil
-		NOTIFS.setGUI(nil)
-	end
-end
-
-local function open()
-	gui = PREVIEW.create()
-	NOTIFS.setGUI(gui)
-	
-	local viewport = gui.container.viewport
-	local selector = viewport.selector
-	local input = gui.container.input
-	
-	local seed = tonumber(savedSeed) or 416
-	input.Text = tostring(seed)
-	
-	PREVIEW.setSelected(selected,selectedName)
-	SELECTOR.connect(gui)
-	PANEL.connect(
-		viewport,
-		selector,
-		SELECTOR.closeDropdown()
-	)
-	
-	input:GetPropertyChangedSignal("Text"):Connect(function()
-		if not input:GetAttribute("updating") then
-			PREVIEW.update()
-		end
-	end)
-end
-
-BUTTON.Click:Connect(function()
-	if gui then
-		savedSeed = gui.container.input.Text
-		close()
-	else
-		open()
-		PREVIEW.update()
-	end
-end)
-
-plugin.Unloading:Connect(close)
-plugin.Deactivation:Connect(close)
-
-SEL.SelectionChanged:Connect(function()
-	selected = SEL:Get()[1]
-	
-	if connection then
-		connection:Disconnect()
-		connection = nil
-	end
-	
-	local seed = selected and selected:GetAttribute("Seed")
-	
-	local secondCheck = selected and (selected:FindFirstAncestor("Bots") or selected:FindFirstAncestor("BotTemplates") or selected:FindFirstAncestor("BotStorage"))
-	if selected and secondCheck and seed and tonumber(seed) then
-		selectedName = selected.Name
-		PREVIEW.setSelected(selected,selectedName)
-		PREVIEW.update(tonumber(seed))
-		
-		connection = selected:GetAttributeChangedSignal("Seed"):Connect(function()
-			selectedName = selected.Name
-			PREVIEW.setSelected(selected,selectedName)
-			PREVIEW.update(tonumber(selected:GetAttribute("Seed")))
-		end)
-	else
-		selected = nil
-		selectedName = ""
-		PREVIEW.setSelected(nil,"")
-		PREVIEW.update()
-	end
-end)
-
---sprix PLEASE tell me this is enough
---although gotta say having it sorted like this isnt like awful
---maybe ill do it more in the future (except the camel case i still feel like thats kinda gross idk why)]]></ProtectedString>
-			<bool name="Disabled">false</bool>
-			<Content name="LinkedSource"><null></null></Content>
-			<token name="RunContext">0</token>
-			<string name="ScriptGuid">{db645a3c-6f45-63ed-6f85-c458c602bf12}</string>
-			<BinaryString name="AttributesSerialize"></BinaryString>
-			<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
-			<bool name="DefinesCapabilities">false</bool>
-			<string name="Name">Main</string>
-			<BinaryString name="SerializedOverrides"></BinaryString>
-			<int64 name="SourceAssetId">-1</int64>
-			<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
-		</Properties>
-	</Item>
-	<Item class="ModuleScript" referent="RBX56E82672075E4750AC380BC9E0CBAFB4">
-		<Properties>
-			<Content name="LinkedSource"><null></null></Content>
-			<ProtectedString name="Source"><![CDATA[local module = {}
-
-module.HAIRSTYLES = {
-	male = {"Charmer","Cool","Dev","Dreamy","Popstar","Neat","Spiky","Shaggy","MessyWavy","Fluffed"},
-	female = {"Animazing","Anime","Bob","Drama","Cropped","Wild","Classic","Long","Ponytail","Wolfish","Wavy","Short"},
-	beards = {"Neat","Thin","Trimmed"}
-}
-
-module.SKIN_COLORS = {
-	black = {{124,92,70},{100,75,62},{86,66,54},{110,81,62},{80,59,45}},
-	beige = {{175,148,131},{170,133,106}},
-	white = {{255,204,153},{234,184,146},{180,144,108}},
-	tan = {{158,117,89},{124,92,70},{139,117,104}},
-	medium = {{158,117,89},{180,144,108},{170,133,106}},
-}
-
-module.HAIR_COLORS = {
-	black = {{27,42,53},{52,52,52},{33,33,33}},
-	beige = {{27,42,53},{86,66,54},{57,43,35},{30,22,18}},
-	white = {{27,42,53},{86,66,54},{99,95,98},{199,172,120},{90,76,66},{135,79,44},{124,92,70}},
-	tan = {{27,42,53},{86,66,54},{57,43,35},{30,22,18}},
-	medium = {{27,42,53},{52,52,52},{33,33,33}}
-}
-
-module.GROUPS = {"black","beige","white","tan","medium"}
-module.SELECTOR_KEYS = {"hairstyle","beardstyle","haircolor","skincolor"}
-module.WHITE = Color3.fromRGB(255,255,255)
-module.BLACK = Color3.fromRGB(0,0,0)
-module.GRAY = Color3.fromRGB(100,100,100)
-
-module.TWEEN_IN = TweenInfo.new(.2,Enum.EasingStyle.Circular,Enum.EasingDirection.In)
-module.TWEEN_OUT = TweenInfo.new(.2,Enum.EasingStyle.Circular,Enum.EasingDirection.Out)
-module.TWEEN_LINEAR = TweenInfo.new(.2,Enum.EasingStyle.Linear)
-
-return module]]></ProtectedString>
-			<string name="ScriptGuid">{8dcb0418-42f2-b6d9-daf4-ee1b179d7732}</string>
-			<BinaryString name="AttributesSerialize"></BinaryString>
-			<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
-			<bool name="DefinesCapabilities">false</bool>
-			<string name="Name">SeedData</string>
-			<BinaryString name="SerializedOverrides"></BinaryString>
-			<int64 name="SourceAssetId">-1</int64>
-			<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
-		</Properties>
-	</Item>
-	<Item class="ModuleScript" referent="RBX42D6F6B7C6704DD59BC22778B788C06F">
-		<Properties>
-			<Content name="LinkedSource"><null></null></Content>
-			<ProtectedString name="Source"><![CDATA[local module = {}
-local SEED_DATA = require(script.Parent.SeedData)
-
-function module.getSeedOption(list,seed,repeater)
-	return list[math.floor(seed/repeater)%#list+1]
-end
-function module.toColor(rgb)
-	return Color3.fromRGB(rgb[1],rgb[2],rgb[3])
-end
-function module.toText(rgb)
-	return table.concat(rgb,",")
-end
-
-function module.makeColor(rgb,ethnicity,dropdown)
-	local label = module.toText(rgb)
-	local value = {label = label,rgb = rgb,ethnicity = ethnicity}
-	
-	if dropdown then
-		value.dropdownlabel = label.." ("..ethnicity..")"
-	end
-	
-	return value
-end
-
-function module.getDetails(seed,selector)
-	local details = {}
-	
-	if seed%100 < 15 then
-		details.ethnicity = "black"
-	elseif seed%100 < 30 then
-		details.ethnicity = "beige"
-	elseif seed%100 < 70 then
-		details.ethnicity = "white"
-	elseif seed%100 < 85 then
-		details.ethnicity = "tan"
-	else
-		details.ethnicity = "medium"
-	end
-	
-	local gender = (seed%2 == 0 and "male") or "female"
-	details.hairstyle = module.getSeedOption(SEED_DATA.HAIRSTYLES[gender],seed,7)
-	details.beardstyle = (seed%10 == 0 and module.getSeedOption(SEED_DATA.HAIRSTYLES.beards,seed,5)) or "none"
-	details.skincolor = module.getSeedOption(SEED_DATA.SKIN_COLORS[details.ethnicity],seed,3)
-	details.haircolor = module.getSeedOption(SEED_DATA.HAIR_COLORS[details.ethnicity],seed,13)
-	
-	if selector then
-		details.skincolor = module.makeColor(details.skincolor,details.ethnicity)
-		details.haircolor = module.makeColor(details.haircolor,details.ethnicity)
-	end
-	
-	if not details.hairstyle or not details.beardstyle or not details.skincolor or not details.haircolor then
-		return false
-	end
-	return details
-end
-
-function module.makeOptions(key,current)
-	local options = {"*"}
-	
-	if key == "hairstyle" then
-		for _,gender in ipairs({"male","female"}) do
-			for _,style in ipairs(SEED_DATA.HAIRSTYLES[gender]) do
-				table.insert(options,style)
-			end
-		end
-	elseif key == "beardstyle" then
-		if current.hairstyle == "*" or table.find(SEED_DATA.HAIRSTYLES.male,current.hairstyle) then
-			table.insert(options,"none")
-			for _,style in ipairs(SEED_DATA.HAIRSTYLES.beards) do
-				table.insert(options,style)
-			end
-		end
-	else
-		options = {{label = "*",dropdownlabel = "*",wildcard = true}}
-		local pool = (key == "haircolor" and SEED_DATA.HAIR_COLORS) or SEED_DATA.SKIN_COLORS
-
-		for _,group in ipairs(SEED_DATA.GROUPS) do
-			for _,color in ipairs(pool[group]) do
-				table.insert(options,module.makeColor(color,group,true))
-			end
-		end
-	end
-	
-	return options
-end
-
-function module.matchColor(wanted,ethnicity,rgb)
-	if wanted.wildcard then
-		return true
-	end
-	
-	if ethnicity ~= wanted.ethnicity then
-		return false
-	end
-	
-	return rgb[1] == wanted.rgb[1] and rgb[2] == wanted.rgb[2] and rgb[3] == wanted.rgb[3]
-end
-
-function module.findSeed(current)
-	for seed = 0,81899 do -- 81900 as lcm, beyond this they just repeat properties
-		local details = module.getDetails(seed)
-		local matches = true
-		
-		if current.hairstyle ~= "*" and current.hairstyle ~= details.hairstyle then
-			matches = false
-		end
-		if current.beardstyle ~= "*" and current.beardstyle ~= details.beardstyle then
-			matches = false
-		end
-		if not module.matchColor(current.skincolor,details.ethnicity,details.skincolor) then
-			matches = false
-		end
-		if not module.matchColor(current.haircolor,details.ethnicity,details.haircolor) then
-			matches = false
-		end
-		
-		if matches then
-			return seed
-		end
-	end
-	
-	return nil
-end
-
-return module]]></ProtectedString>
-			<string name="ScriptGuid">{fb7977c3-7fb8-2421-9fce-7ec4e23ea8d9}</string>
-			<BinaryString name="AttributesSerialize"></BinaryString>
-			<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
-			<bool name="DefinesCapabilities">false</bool>
-			<string name="Name">SeedLogic</string>
-			<BinaryString name="SerializedOverrides"></BinaryString>
-			<int64 name="SourceAssetId">-1</int64>
-			<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
-		</Properties>
-	</Item>
-	<Item class="ModuleScript" referent="RBXD0284F076BBD4B5E8DD5CDADDF33B23C">
-		<Properties>
-			<Content name="LinkedSource"><null></null></Content>
-			<ProtectedString name="Source"><![CDATA[local module = {}
-local SEED_DATA = require(script.Parent.SeedData)
-local SEED_LOGIC = require(script.Parent.SeedLogic)
-local HIST = game:GetService("ChangeHistoryService")
-local UI_TEMPLATE = require(script.Parent.UI)
-
-local gui
-local selected
-local sname = ""
-
-function module.setSelected(nextSelected,nextName)
-	selected = nextSelected
-	sname = nextName or ""
-end
-
-function module.getGUI()
-	return gui
-end
-
-function module.create()
-	gui = UI_TEMPLATE:Clone()
-	gui.Parent = game:GetService("CoreGui")
-	
-	local viewport = gui.container.viewport
-	for _,item in ipairs(gui:GetDescendants()) do
-		if item:IsA("ViewportFrame") then
-			item.CurrentCamera = viewport.Camera
-		end
-	end
-	
-	return gui
-end
-
-function module.close()
-	if gui then
-		gui:Destroy()
-		gui = nil
-	end
-end
-
-local function updateAppearance(viewport,details)
-	local hairstyle = details.hairstyle
-	local beardstyle = details.beardstyle
-	local skincolor = details.skincolor
-	local haircolor = details.haircolor
-	
-	for _,item in ipairs(viewport.hair:GetChildren()) do
-		item.Transparency = (item.Name == hairstyle and 0) or 1
-	end
-	for _,item in ipairs(viewport.beard:GetChildren()) do
-		item.Transparency = (item.Name == beardstyle and 0) or 1
-	end
-	
-	viewport.Head.Color = SEED_LOGIC.toColor(skincolor)
-	for _,item in ipairs(viewport:GetDescendants()) do
-		if item:IsA("MeshPart") and item.Parent:IsA("Folder") then
-			item.Color = SEED_LOGIC.toColor(haircolor)
-		end
-	end
-end
-
-local function updateDetails(desc,details,seed,viewport)
-	local hairstyle = details.hairstyle
-	local beardstyle = details.beardstyle
-	local haircolor = details.haircolor
-	local skincolor = details.skincolor
-	desc.seed.frame.text.Text = seed
-	
-	local hairframe = desc.hairstyle.frame
-	local beardframe = desc.beardstyle.frame
-	hairframe.vf:ClearAllChildren()
-	beardframe.vf:ClearAllChildren()
-	
-	local hairclone = viewport.hair[hairstyle]:Clone()
-	local beardclone = viewport.beard[beardstyle]:Clone()
-	hairclone.Parent = hairframe.vf
-	beardclone.Parent = beardframe.vf
-	hairframe.text.Text = hairstyle
-	beardframe.text.Text = beardstyle
-	
-	desc.haircolor.frame.cf.color.BackgroundColor3 = SEED_LOGIC.toColor(haircolor)
-	desc.haircolor.frame.text.Text = SEED_LOGIC.toText(haircolor)
-	desc.skincolor.frame.cf.color.BackgroundColor3 = SEED_LOGIC.toColor(skincolor)
-	desc.skincolor.frame.text.Text = SEED_LOGIC.toText(skincolor)
-	
-	hairclone.Color = SEED_DATA.WHITE
-	beardclone.Color = SEED_DATA.WHITE
-end
-
-function module.update(newSeed)
-	if not gui then return end
-	local container = gui.container
-	local input = container.input
-	local viewport = container.viewport
-	
-	if newSeed and tonumber(newSeed) then
-		input:SetAttribute("updating",true)
-		input.Text = tostring(tonumber(newSeed))
-		input:SetAttribute("updating",false)
-	end
-	
-	viewport.name.Text = sname
-	local seed = tonumber(input.Text)
-	if not seed then return end
-	
-	local details = SEED_LOGIC.getDetails(seed)
-	if not details then return end
-	updateAppearance(viewport,details)
-	updateDetails(viewport.desc,details,seed,viewport)
-	
-	if selected then
-		local rec = HIST:TryBeginRecording("Change Bot Seed")
-		if not rec then return end
-		selected:SetAttribute("Seed",seed)
-		HIST:FinishRecording(rec,Enum.FinishRecordingOperation.Commit)
-	end
-end
-
-return module]]></ProtectedString>
-			<string name="ScriptGuid">{a837dfe7-5438-a263-6f25-49e39fcdc1fb}</string>
-			<BinaryString name="AttributesSerialize"></BinaryString>
-			<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
-			<bool name="DefinesCapabilities">false</bool>
-			<string name="Name">Preview</string>
-			<BinaryString name="SerializedOverrides"></BinaryString>
-			<int64 name="SourceAssetId">-1</int64>
-			<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
-		</Properties>
-	</Item>
-	<Item class="ModuleScript" referent="RBX1D4D8E3EC5294017A26C0C5BF49ED73D">
-		<Properties>
-			<Content name="LinkedSource"><null></null></Content>
-			<ProtectedString name="Source"><![CDATA[local module = {}
-local SEED_DATA = require(script.Parent.SeedData)
-local SEED_LOGIC = require(script.Parent.SeedLogic)
-local NOTIFS = require(script.Parent.Notifications)
-local dropdown
-
-function module.updateFrame(frame,key,value,viewport,displaytext)
-	if displaytext then
-		frame.text.Text = displaytext
-	elseif type(value) == "table" then
-		frame.text.Text = value.label
-	else
-		frame.text.Text = value
-	end
-	
-	if key == "hairstyle" or key == "beardstyle" then
-		frame.vf:ClearAllChildren()
-		local folder = (key == "hairstyle" and viewport.hair) or viewport.beard
-		local source = folder:FindFirstChild(value)
-		if source then
-			local clone = source:Clone()
-			clone.Transparency = 0
-			clone.Color = SEED_DATA.WHITE
-			clone.Parent = frame.vf
-		end
-		return
-	end
-	
-	frame.cf.color.BackgroundColor3 = SEED_LOGIC.toColor(value.rgb or {0,0,0})
-end
-
-function module.updateBeardCheck(selector,hairstyle,beardstyle)
-	local beard = selector.beardstyle
-	local allowed = hairstyle == "*" or table.find(SEED_DATA.HAIRSTYLES.male,hairstyle) ~= nil or beardstyle == "*"
-	
-	beard.Active = true
-	beard.AutoButtonColor = true
-	beard.frame.text.TextColor3 = (allowed and SEED_DATA.WHITE) or SEED_DATA.GRAY
-end
-
-local function createEntry(template,index,key,option,dropdown,viewport,current,selector,input)
-	local entry = template:Clone()
-	entry.Name = "option"..index
-	entry.Visible = true
-	entry.LayoutOrder = index
-	entry.Position = UDim2.new(0,0,0,0)
-	entry.Size = UDim2.new(1,0,0,30)
-	entry.ZIndex = 99
-	
-	local duplicate = entry:FindFirstChild("text")
-	if duplicate then
-		duplicate:Destroy()
-	end
-	
-	entry.Parent = dropdown
-	
-	for _,item in ipairs(entry:GetDescendants()) do
-		if item:IsA("GuiObject") then
-			item.ZIndex = 11
-		end
-	end
-	
-	local displayText = (type(option) == "table" and option.dropdownlabel) or option
-	module.updateFrame(entry.frame,key,option,viewport,displayText)
-	
-	entry.MouseButton1Click:Connect(function()
-		local updates = {key}
-		
-		if key == "haircolor" or key == "skincolor" then
-			current[key] = option
-			local other = (key == "haircolor" and "skincolor") or "haircolor"
-			
-			if not option.wildcard and not current[other].wildcard then
-				local divisor = (other == "haircolor" and 13) or 3
-				local pool = ((other == "haircolor" and SEED_DATA.HAIR_COLORS) or SEED_DATA.SKIN_COLORS)[option.ethnicity]
-				
-				current[other] = SEED_LOGIC.makeColor(
-					SEED_LOGIC.getSeedOption(pool,tonumber(input.Text) or 416,divisor),
-					option.ethnicity,
-					true
-				)
-				
-				table.insert(updates,other)
-			end
-		else
-			current[key] = option
-			
-			if key == "hairstyle" then
-				if option ~= "*" and not table.find(SEED_DATA.HAIRSTYLES.male,option) and current.beardstyle ~= "*" then
-					current.beardstyle = "none"
-				end
-				table.insert(updates,"beardstyle")
-			end
-		end
-		
-		for _,updateKey in ipairs(updates) do
-			module.updateFrame(selector[updateKey].frame,updateKey,current[updateKey],viewport)
-		end
-		
-		if key == "hairstyle" then
-			module.updateBeardCheck(selector,option,current.beardstyle)
-		end
-		
-		if dropdown then
-			dropdown:Destroy()
-			dropdown = nil
-		end
-	end)
-end
-
-function module.connectDropdowns(selector,viewport,current,input)
-	for _,key in ipairs(SEED_DATA.SELECTOR_KEYS) do
-		local target = selector[key]
-		
-		target.MouseButton1Click:Connect(function()
-			if dropdown then
-				local same = dropdown.Parent == target
-				dropdown:Destroy()
-				dropdown = nil
-				if same then return end
-			end
-			
-			local options = SEED_LOGIC.makeOptions(key,current)
-			local template = target:Clone()
-			
-			dropdown = Instance.new("ScrollingFrame")
-			dropdown.Name = "dropdown"
-			dropdown.ScrollingDirection = Enum.ScrollingDirection.Y
-			dropdown.AutomaticCanvasSize = Enum.AutomaticSize.Y
-			dropdown.CanvasSize = UDim2.new(0,0,0,0)
-			dropdown.AnchorPoint = Vector2.new(.5,0)
-			dropdown.Position = UDim2.new(.5,0,1,0)
-			dropdown.Size = UDim2.new(1,0,3,0)
-			dropdown.BackgroundColor3 = Color3.new(0,0,0)
-			dropdown.BackgroundTransparency = .5
-			dropdown.ZIndex = 9
-			dropdown.Parent = target
-			target.ClipsDescendants = false
-			
-			local layout = Instance.new("UIListLayout")
-			layout.SortOrder = Enum.SortOrder.LayoutOrder
-			layout.Padding = UDim.new(0,0)
-			layout.Parent = dropdown
-			
-			for index,option in ipairs(options) do
-				createEntry(template,index,key,option,dropdown,viewport,current,selector,input)
-			end
-			
-			template:Destroy()
-		end)
-	end
-end
-
-function module.connectSearch(selector,current,input)
-	selector.search.sbutton.MouseButton1Click:Connect(function()
-		local found = SEED_LOGIC.findSeed(current)
-		
-		if found then
-			input.Text = tostring(found)
-		else
-			NOTIFS.popup("Combination Impossible")
-		end
-	end)
-end
-
-function module.closeDropdown()
-	if dropdown then
-		dropdown:Destroy()
-		dropdown = nil
-	end
-end
-
-function module.connect(gui)
-	local viewport = gui.container.viewport
-	local selector = viewport.selector
-	local input = gui.container.input
-	local current = SEED_LOGIC.getDetails(tonumber(input.Text) or 416,true)
-	
-	for _,key in ipairs(SEED_DATA.SELECTOR_KEYS) do
-		module.updateFrame(selector[key].frame,key,current[key],viewport)
-	end
-	module.updateBeardCheck(selector,current.hairstyle,current.beardstyle)
-	module.connectSearch(selector,current,input)
-	module.connectDropdowns(selector,viewport,current,input)
-end
-
-return module]]></ProtectedString>
-			<string name="ScriptGuid">{8b364a9d-c901-bbb3-c09c-a112e4bfab41}</string>
-			<BinaryString name="AttributesSerialize"></BinaryString>
-			<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
-			<bool name="DefinesCapabilities">false</bool>
-			<string name="Name">Selector</string>
-			<BinaryString name="SerializedOverrides"></BinaryString>
-			<int64 name="SourceAssetId">-1</int64>
-			<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
-		</Properties>
-	</Item>
-	<Item class="ModuleScript" referent="RBX8E3BA2B134C0442D9C0DA53694B0FC36">
-		<Properties>
-			<Content name="LinkedSource"><null></null></Content>
-			<ProtectedString name="Source"><![CDATA[local module = {}
-local SEED_DATA = require(script.Parent.SeedData)
-local TS = game:GetService("TweenService")
-
-local dropdown
-
-function module.connect(viewport,selector,closeDropdown)
-	local t1,t2
-	local expanded = false
-	
-	viewport.thing.MouseButton1Click:Connect(function()
-		expanded = not expanded
-		if t1 then t1:Cancel() end
-		if t2 then t2:Cancel() end
-		
-		if expanded then
-			t1 = TS:Create(viewport.Parent,SEED_DATA.TWEEN_OUT,{
-				Position = UDim2.new(.5,0,.5,0)
-			})
-			t2 = TS:Create(selector,SEED_DATA.TWEEN_OUT,{
-				Size = UDim2.new(0,200,0,270)
-			})
-			t1:Play()
-			t2:Play()
-			
-			task.delay(.2,function()
-				if expanded then
-					selector.ClipsDescendants = false
-				end
-			end)
-		else
-			selector.ClipsDescendants = true
-			t1 = TS:Create(viewport.Parent,SEED_DATA.TWEEN_OUT,{
-				Position = UDim2.new(.5,110,.5,0)
-			})
-			t2 = TS:Create(selector,SEED_DATA.TWEEN_OUT,{
-				Size = UDim2.new(0,0,0,270)
-			})
-			t1:Play()
-			t2:Play()
-		end
-		
-		if closeDropdown then closeDropdown() end
-	end)
-end
-
-return module]]></ProtectedString>
-			<string name="ScriptGuid">{86763277-bfa3-f4f0-a564-c22dd1990c71}</string>
-			<BinaryString name="AttributesSerialize"></BinaryString>
-			<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
-			<bool name="DefinesCapabilities">false</bool>
-			<string name="Name">Panel</string>
-			<BinaryString name="SerializedOverrides"></BinaryString>
-			<int64 name="SourceAssetId">-1</int64>
-			<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
-		</Properties>
-	</Item>
-	<Item class="ModuleScript" referent="RBX737CBCB7483A4EA5BBA0DF0992ABF5F1">
-		<Properties>
-			<Content name="LinkedSource"><null></null></Content>
-			<ProtectedString name="Source"><![CDATA[local module = {}
-local SEED_DATA = require(script.Parent.SeedData)
-local TS = game:GetService("TweenService")
-
-local gui
-local currentPopup
-local popupId = 0
-local shownAt = 0
-
-function module.setGUI(nextGUI)
-	gui = nextGUI
-end
-
-local function hide(popupFrame)
-	if not popupFrame or not popupFrame.Parent then
-		return
-	end
-	
-	local move = TS:Create(popupFrame,SEED_DATA.TWEEN_IN,{
-		Position = popupFrame.Position + UDim2.new(0,0,-.2,0)
-	})
-	
-	TS:Create(popupFrame,SEED_DATA.TWEEN_LINEAR,{
-		TextTransparency = 1
-	}):Play()
-	
-	move.Completed:Connect(function()
-		if popupFrame.Parent then
-			popupFrame:Destroy()
-		end
-	end)
-	
-	move:Play()
-end
-
-function module.popup(text)
-	if os.clock() - shownAt < 1 then return end
-	
-	if currentPopup then
-		hide(currentPopup)
-	end
-	
-	shownAt = os.clock()
-	popupId += 1
-	local thisId = popupId
-	local popupFrame = gui.popup:Clone()
-	currentPopup = popupFrame
-	popupFrame.Position += UDim2.new(0,0,.2,0)
-	popupFrame.TextTransparency = 1
-	popupFrame.Text = text
-	popupFrame.Parent = gui
-	
-	TS:Create(popupFrame,SEED_DATA.TWEEN_OUT,{
-		Position = popupFrame.Position + UDim2.new(0,0,-.2,0)
-	}):Play()
-	TS:Create(popupFrame,SEED_DATA.TWEEN_LINEAR,{
-		TextTransparency = 0
-	}):Play()
-	
-	task.delay(5,function()
-		if popupId ~= thisId or currentPopup ~= popupFrame then
-			return
-		end
-		
-		currentPopup = nil
-		hide(popupFrame)
-	end)
-	
-	task.delay(7,function()
-		popupFrame:Destroy()
-	end)
-end
-
-return module]]></ProtectedString>
-			<string name="ScriptGuid">{6c6bbc75-128c-d874-c114-a925b9432bb7}</string>
-			<BinaryString name="AttributesSerialize"></BinaryString>
-			<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
-			<bool name="DefinesCapabilities">false</bool>
-			<string name="Name">Notifications</string>
-			<BinaryString name="SerializedOverrides"></BinaryString>
-			<int64 name="SourceAssetId">-1</int64>
-			<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
-		</Properties>
+				<string name="ScriptGuid">{85dd6fb8-069f-d04b-2344-2483b8b95f0e}</string>
+				<BinaryString name="AttributesSerialize"></BinaryString>
+				<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+				<bool name="DefinesCapabilities">false</bool>
+				<string name="Name">UI</string>
+				<BinaryString name="SerializedOverrides"></BinaryString>
+				<int64 name="SourceAssetId">-1</int64>
+				<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+			</Properties>
+		</Item>
 	</Item>
 	<SharedStrings>
 		<SharedString md5="yuZpQdnvvUBOTYh1jqZ2cA=="></SharedString>
