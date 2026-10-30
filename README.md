@@ -6,7 +6,7 @@ epfc bot seed calculator
 
 <img width="600" height="360" alt="image" src="https://github.com/user-attachments/assets/8a573856-bc63-4572-a3a9-022797defddb" />
 
-the ui starts at seed 416 (is this their favorite number? probably so) and lets you change the input textbox in real time to adjust the view
+the ui starts at seed 416 (game release date!!!!) and lets you change the input textbox in real time to adjust the view
 
 <img width="600" height="360" alt="image" src="https://github.com/user-attachments/assets/0b8d5f2c-7667-46ca-ba37-8046fee0d12c" />
 <img width="600" height="360" alt="image" src="https://github.com/user-attachments/assets/73bf4ae4-5a06-4baf-93d9-5b6e7318df08" />
