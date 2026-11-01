@@ -17,7 +17,7 @@ function module.getGUI()
 	return gui
 end
 
-function module.create()
+function module.create(seed)
 	gui = UI_TEMPLATE:Clone()
 	gui.Parent = game:GetService("CoreGui")
 	
@@ -27,6 +27,8 @@ function module.create()
 			item.CurrentCamera = viewport.Camera
 		end
 	end
+	
+	gui.container.input.Text = tostring(seed)
 	
 	return gui
 end
@@ -87,8 +89,9 @@ local function updateDetails(desc,details,seed,viewport)
 	beardclone.Color = SEED_DATA.WHITE
 end
 
-function module.update(newSeed)
+function module.update(newSeed,blockUpdate)
 	if not gui then return end
+	
 	local container = gui.container
 	local input = container.input
 	local viewport = container.viewport
@@ -101,14 +104,21 @@ function module.update(newSeed)
 	
 	viewport.name.Text = sname
 	local seed = tonumber(input.Text)
-	if not seed then return end
+	if not seed then
+		local secondCheck = selected and (selected:FindFirstAncestor("Bots") or selected:FindFirstAncestor("BotTemplates") or selected:FindFirstAncestor("BotStorage"))
+		if selected and secondCheck and newSeed and tonumber(newSeed) then
+			seed = newSeed
+		else
+			return
+		end
+	end
 	
 	local details = SEED_LOGIC.getDetails(seed)
 	if not details then return end
 	updateAppearance(viewport,details)
 	updateDetails(viewport.desc,details,seed,viewport)
 	
-	if selected then
+	if selected and not blockUpdate then
 		local rec = HIST:TryBeginRecording("Change Bot Seed")
 		if not rec then return end
 		selected:SetAttribute("Seed",seed)

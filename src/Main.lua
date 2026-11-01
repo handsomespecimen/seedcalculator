@@ -10,6 +10,7 @@ local BUTTON = TOOLBAR:CreateButton(NAME,NAME,"rbxassetid://8803807177",NAME)
 
 local gui
 local selected
+local dontEdit = false
 local connection
 local savedSeed = 416
 local selectedName = ""
@@ -23,15 +24,14 @@ local function close()
 end
 
 local function open()
-	gui = PREVIEW.create()
+	local seed = tonumber(savedSeed) or 416
+	
+	gui = PREVIEW.create(tostring(seed))
 	NOTIFS.setGUI(gui)
 	
 	local viewport = gui.container.viewport
 	local selector = viewport.selector
 	local input = gui.container.input
-	
-	local seed = tonumber(savedSeed) or 416
-	input.Text = tostring(seed)
 	
 	PREVIEW.setSelected(selected,selectedName)
 	SELECTOR.connect(gui)
@@ -54,7 +54,8 @@ BUTTON.Click:Connect(function()
 		close()
 	else
 		open()
-		PREVIEW.update()
+		PREVIEW.setSelected(selected,selectedName)
+		PREVIEW.update(savedSeed,true)
 	end
 end)
 
@@ -74,13 +75,16 @@ SEL.SelectionChanged:Connect(function()
 	local secondCheck = selected and (selected:FindFirstAncestor("Bots") or selected:FindFirstAncestor("BotTemplates") or selected:FindFirstAncestor("BotStorage"))
 	if selected and secondCheck and seed and tonumber(seed) then
 		selectedName = selected.Name
+		savedSeed = tonumber(seed)
 		PREVIEW.setSelected(selected,selectedName)
 		PREVIEW.update(tonumber(seed))
 		
 		connection = selected:GetAttributeChangedSignal("Seed"):Connect(function()
+			seed = selected and selected:GetAttribute("Seed")
 			selectedName = selected.Name
+			savedSeed = tonumber(seed)
 			PREVIEW.setSelected(selected,selectedName)
-			PREVIEW.update(tonumber(selected:GetAttribute("Seed")))
+			PREVIEW.update(tonumber(seed))
 		end)
 	else
 		selected = nil
@@ -93,3 +97,5 @@ end)
 --sprix PLEASE tell me this is enough
 --although gotta say having it sorted like this isnt like awful
 --maybe ill do it more in the future (except the camel case i still feel like thats kinda gross idk why)
+
+--update: thank you sprix <3

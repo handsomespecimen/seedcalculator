@@ -30,6 +30,7 @@ local BUTTON = TOOLBAR:CreateButton(NAME,NAME,"rbxassetid://8803807177",NAME)
 
 local gui
 local selected
+local dontEdit = false
 local connection
 local savedSeed = 416
 local selectedName = ""
@@ -43,15 +44,14 @@ local function close()
 end
 
 local function open()
-	gui = PREVIEW.create()
+	local seed = tonumber(savedSeed) or 416
+	
+	gui = PREVIEW.create(tostring(seed))
 	NOTIFS.setGUI(gui)
 	
 	local viewport = gui.container.viewport
 	local selector = viewport.selector
 	local input = gui.container.input
-	
-	local seed = tonumber(savedSeed) or 416
-	input.Text = tostring(seed)
 	
 	PREVIEW.setSelected(selected,selectedName)
 	SELECTOR.connect(gui)
@@ -74,7 +74,8 @@ BUTTON.Click:Connect(function()
 		close()
 	else
 		open()
-		PREVIEW.update()
+		PREVIEW.setSelected(selected,selectedName)
+		PREVIEW.update(savedSeed,true)
 	end
 end)
 
@@ -94,13 +95,16 @@ SEL.SelectionChanged:Connect(function()
 	local secondCheck = selected and (selected:FindFirstAncestor("Bots") or selected:FindFirstAncestor("BotTemplates") or selected:FindFirstAncestor("BotStorage"))
 	if selected and secondCheck and seed and tonumber(seed) then
 		selectedName = selected.Name
+		savedSeed = tonumber(seed)
 		PREVIEW.setSelected(selected,selectedName)
 		PREVIEW.update(tonumber(seed))
 		
 		connection = selected:GetAttributeChangedSignal("Seed"):Connect(function()
+			seed = selected and selected:GetAttribute("Seed")
 			selectedName = selected.Name
+			savedSeed = tonumber(seed)
 			PREVIEW.setSelected(selected,selectedName)
-			PREVIEW.update(tonumber(selected:GetAttribute("Seed")))
+			PREVIEW.update(tonumber(seed))
 		end)
 	else
 		selected = nil
@@ -112,11 +116,13 @@ end)
 
 --sprix PLEASE tell me this is enough
 --although gotta say having it sorted like this isnt like awful
---maybe ill do it more in the future (except the camel case i still feel like thats kinda gross idk why)]]></ProtectedString>
+--maybe ill do it more in the future (except the camel case i still feel like thats kinda gross idk why)
+
+--update: thank you sprix <3]]></ProtectedString>
 				<bool name="Disabled">false</bool>
 				<Content name="LinkedSource"><null></null></Content>
 				<token name="RunContext">0</token>
-				<string name="ScriptGuid">{db645a3c-6f45-63ed-6f85-c458c602bf12}</string>
+				<string name="ScriptGuid">{e1fff242-1116-75fc-7dd3-c53797aff7d7}</string>
 				<BinaryString name="AttributesSerialize"></BinaryString>
 				<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
 				<bool name="DefinesCapabilities">false</bool>
@@ -203,7 +209,7 @@ function module.popup(text)
 end
 
 return module]]></ProtectedString>
-				<string name="ScriptGuid">{6c6bbc75-128c-d874-c114-a925b9432bb7}</string>
+				<string name="ScriptGuid">{658f14f1-6e42-2b98-3ade-75cb29309f66}</string>
 				<BinaryString name="AttributesSerialize"></BinaryString>
 				<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
 				<bool name="DefinesCapabilities">false</bool>
@@ -263,7 +269,7 @@ function module.connect(viewport,selector,closeDropdown)
 end
 
 return module]]></ProtectedString>
-				<string name="ScriptGuid">{86763277-bfa3-f4f0-a564-c22dd1990c71}</string>
+				<string name="ScriptGuid">{6e267f40-996e-e485-2f2b-2d9dccea7e8f}</string>
 				<BinaryString name="AttributesSerialize"></BinaryString>
 				<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
 				<bool name="DefinesCapabilities">false</bool>
@@ -295,7 +301,7 @@ function module.getGUI()
 	return gui
 end
 
-function module.create()
+function module.create(seed)
 	gui = UI_TEMPLATE:Clone()
 	gui.Parent = game:GetService("CoreGui")
 	
@@ -305,6 +311,8 @@ function module.create()
 			item.CurrentCamera = viewport.Camera
 		end
 	end
+	
+	gui.container.input.Text = tostring(seed)
 	
 	return gui
 end
@@ -365,8 +373,9 @@ local function updateDetails(desc,details,seed,viewport)
 	beardclone.Color = SEED_DATA.WHITE
 end
 
-function module.update(newSeed)
+function module.update(newSeed,blockUpdate)
 	if not gui then return end
+	
 	local container = gui.container
 	local input = container.input
 	local viewport = container.viewport
@@ -379,14 +388,21 @@ function module.update(newSeed)
 	
 	viewport.name.Text = sname
 	local seed = tonumber(input.Text)
-	if not seed then return end
+	if not seed then
+		local secondCheck = selected and (selected:FindFirstAncestor("Bots") or selected:FindFirstAncestor("BotTemplates") or selected:FindFirstAncestor("BotStorage"))
+		if selected and secondCheck and newSeed and tonumber(newSeed) then
+			seed = newSeed
+		else
+			return
+		end
+	end
 	
 	local details = SEED_LOGIC.getDetails(seed)
 	if not details then return end
 	updateAppearance(viewport,details)
 	updateDetails(viewport.desc,details,seed,viewport)
 	
-	if selected then
+	if selected and not blockUpdate then
 		local rec = HIST:TryBeginRecording("Change Bot Seed")
 		if not rec then return end
 		selected:SetAttribute("Seed",seed)
@@ -395,7 +411,7 @@ function module.update(newSeed)
 end
 
 return module]]></ProtectedString>
-				<string name="ScriptGuid">{a837dfe7-5438-a263-6f25-49e39fcdc1fb}</string>
+				<string name="ScriptGuid">{c994c0df-640f-c357-0779-c7aa05a01ad8}</string>
 				<BinaryString name="AttributesSerialize"></BinaryString>
 				<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
 				<bool name="DefinesCapabilities">false</bool>
@@ -443,7 +459,7 @@ module.TWEEN_OUT = TweenInfo.new(.2,Enum.EasingStyle.Circular,Enum.EasingDirecti
 module.TWEEN_LINEAR = TweenInfo.new(.2,Enum.EasingStyle.Linear)
 
 return module]]></ProtectedString>
-				<string name="ScriptGuid">{8dcb0418-42f2-b6d9-daf4-ee1b179d7732}</string>
+				<string name="ScriptGuid">{f4505b0a-442b-ec06-b6cd-e218d4d03a30}</string>
 				<BinaryString name="AttributesSerialize"></BinaryString>
 				<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
 				<bool name="DefinesCapabilities">false</bool>
@@ -581,7 +597,7 @@ function module.findSeed(current)
 end
 
 return module]]></ProtectedString>
-				<string name="ScriptGuid">{fb7977c3-7fb8-2421-9fce-7ec4e23ea8d9}</string>
+				<string name="ScriptGuid">{0c2022bb-d71d-10cc-11f7-cfadde50c331}</string>
 				<BinaryString name="AttributesSerialize"></BinaryString>
 				<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
 				<bool name="DefinesCapabilities">false</bool>
@@ -781,7 +797,7 @@ function module.connect(gui)
 end
 
 return module]]></ProtectedString>
-				<string name="ScriptGuid">{8b364a9d-c901-bbb3-c09c-a112e4bfab41}</string>
+				<string name="ScriptGuid">{b33f1987-80aa-c843-7e78-56dc16bbb6ee}</string>
 				<BinaryString name="AttributesSerialize"></BinaryString>
 				<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
 				<bool name="DefinesCapabilities">false</bool>
@@ -2198,7 +2214,7 @@ G2L["60"]["Name"] = [[popup]];
 G2L["60"]["Position"] = UDim2.new(0.5, 0, 0.15, 0);
 
 return G2L["1"]]]></ProtectedString>
-				<string name="ScriptGuid">{85dd6fb8-069f-d04b-2344-2483b8b95f0e}</string>
+				<string name="ScriptGuid">{52a5a88f-a9c6-6f95-34a8-428bcb4a7dfb}</string>
 				<BinaryString name="AttributesSerialize"></BinaryString>
 				<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
 				<bool name="DefinesCapabilities">false</bool>
